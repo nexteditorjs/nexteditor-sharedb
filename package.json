@@ -10,7 +10,7 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && note ./build.js"
+    "build": "note ./build.js"
   },
   "dependencies": {
     "@nexteditorjs/nexteditor-core": "^0.0.1",
