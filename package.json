@@ -13,7 +13,7 @@
     "build": "note ./build.js"
   },
   "dependencies": {
-    "@nexteditorjs/nexteditor-core": "^0.0.1",
+    "@nexteditorjs/nexteditor-core": "0.0.2",
     "lodash.clonedeep": "^4.5.0",
     "lodash.isequal": "^4.5.0",
     "ot-json1": "^1.0.2",
