@@ -1,7 +1,9 @@
 import {
   DocBlock, DocBlockText, NextEditorDoc, assert, DocBlockTextActions, DocObject, NextEditorDocCallbacks, DocBlockDelta, createEmptyDoc,
 } from '@nexteditorjs/nexteditor-core';
-import { OpBlockData, OpParserHandler, parseOps } from './op-parser';
+import cloneDeep from 'lodash.clonedeep';
+import OpBlockDataDelta from './op-block-delta';
+import { OpParserHandler, parseOps } from './op-parser';
 import { ShareDBDocOptions } from './options';
 import ShareDBDocClient, { ShareDBError } from './sharedb-client';
 
@@ -68,13 +70,13 @@ export default class ShareDBDoc implements NextEditorDoc, OpParserHandler {
   }
 
   localInsertBlock(containerId: string, blockIndex: number, data: DocBlock): DocBlock {
-    this.client.insertObject(containerId, blockIndex, data);
+    this.client.insertBlock(containerId, blockIndex, data);
     return this.getBlockData(containerId, blockIndex);
   }
 
   localDeleteBlock(containerId: string, blockIndex: number): DocBlock {
     const oldData = this.getBlockData(containerId, blockIndex);
-    this.client.deleteObject(containerId, blockIndex);
+    this.client.deleteBlock(containerId, blockIndex);
     return oldData;
   }
 
@@ -88,19 +90,19 @@ export default class ShareDBDoc implements NextEditorDoc, OpParserHandler {
   }
 
   localUpdateBlockData(containerId: string, blockIndex: number, delta: DocBlockDelta): DocBlock {
-    const oldBlockData = this.getBlockData(containerId, blockIndex);
-    // TODO: add update block data
+    const oldBlockData = cloneDeep(this.getBlockData(containerId, blockIndex));
+    this.client.updateBlockData(containerId, blockIndex, delta);
     return oldBlockData;
   }
 
   localInsertChildContainer(containerId: string, blocks: DocBlock[]): void {
-    //
-    // TODO: add insert container
+    this.client.insertChildContainer(containerId, blocks);
   }
 
   localDeleteChildContainers(containerIds: string[]): void {
-    //
-    // TODO: add insert container
+    containerIds.forEach((id) => {
+      this.client.deleteChildContainer(id);
+    });
   }
 
   private handleOp = (ops: any[], source: any, clientId: any) => {
@@ -118,9 +120,9 @@ export default class ShareDBDoc implements NextEditorDoc, OpParserHandler {
     this.callbacks.onInsertBlock(containerId, blockIndex, data, local);
   }
 
-  onUpdateBlockData(containerId: string, blockIndex: number, data: OpBlockData, local: boolean): void {
+  onUpdateBlockData(containerId: string, blockIndex: number, delta: OpBlockDataDelta, local: boolean): void {
     assert(this.callbacks, 'no callbacks');
-    // this.callbacks.onUpdateBlockData(containerId, blockIndex, data, local);
+    this.callbacks.onUpdateBlockData(containerId, blockIndex, delta.toDocBlockDelta(), local);
   }
 
   onUpdateBlockText(containerId: string, blockIndex: number, actions: DocBlockTextActions, local: boolean): void {
@@ -130,9 +132,13 @@ export default class ShareDBDoc implements NextEditorDoc, OpParserHandler {
 
   onDeleteContainer(containerId: string, local: boolean): void {
     assert(this.callbacks, 'no callbacks');
+    assert(containerId !== 'root', 'should not delete root container in doc');
+    this.callbacks.onDeleteChildContainer(containerId, local);
   }
 
-  onCreateContainer(containerId: string, data: DocBlock[], local: boolean): void {
+  onCreateContainer(containerId: string, blocks: DocBlock[], local: boolean): void {
     assert(this.callbacks, 'no callbacks');
+    assert(containerId !== 'root', 'should not create root container in doc');
+    this.callbacks.onInsertChildContainer(containerId, blocks, local);
   }
 }

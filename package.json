@@ -9,7 +9,9 @@
   "module": "./dist/index.es.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "dev": "vite",
+    "start-server": "cd ../nexteditor-sharedb-server && node ./index.js",
+    "start-client": "vite",
+    "dev": "npm-run-all --parallel start-server start-client",
     "build": "note ./build.js"
   },
   "dependencies": {
@@ -23,8 +25,11 @@
     "sharedb": "^2.2.5"
   },
   "devDependencies": {
+    "@nexteditorjs/nexteditor-input-handlers": "^0.0.15",
+    "@nexteditorjs/nexteditor-table-block": "^0.0.15",
     "@types/lodash.isequal": "^4.5.5",
     "@types/sharedb": "^2.2.0",
+    "npm-run-all": "^4.1.5",
     "typescript": "^4.5.4",
     "vite": "^2.8.0"
   }

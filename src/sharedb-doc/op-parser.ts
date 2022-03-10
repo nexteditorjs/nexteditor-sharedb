@@ -3,21 +3,20 @@ import { assert, DocBlock, DocBlockTextActions } from '@nexteditorjs/nexteditor-
 import cloneDeep from 'lodash.clonedeep';
 import { Op } from 'sharedb';
 import { ContainerBlockIds } from './block-ids';
+import OpBlockDataDelta from './op-block-delta';
 // import testJson from './test.json';
-
-export type OpBlockData = { [index: string]: unknown };
 
 export interface OpParserHandler {
   onDeleteBlock: (containerId: string, blockIndex: number, local: boolean) => void;
   onInsertBlock: (containerId: string, blockIndex: number, data: DocBlock, local: boolean) => void;
-  onUpdateBlockData: (containerId: string, blockIndex: number, data: OpBlockData, local: boolean) => void;
+  onUpdateBlockData: (containerId: string, blockIndex: number, data: OpBlockDataDelta, local: boolean) => void;
   onUpdateBlockText: (containerId: string, blockIndex: number, richTextData: DocBlockTextActions, local: boolean) => void;
   onDeleteContainer: (containerId: string, local: boolean) => void;
   onCreateContainer: (containerId: string, data: DocBlock[], local: boolean) => void;
 }
 
 class InternalParser {
-  updatingBlockDataMap = new Map<string, OpBlockData>();
+  updatingBlockDataDeltaMap = new Map<string, OpBlockDataDelta>();
 
   blockIds = new ContainerBlockIds();
 
@@ -27,10 +26,10 @@ class InternalParser {
   onDeleteBlock(containerId: string, blockIndex: number): void {
     const blockId = this.blockIds.getBlockId(containerId, blockIndex);
     this.blockIds.onDeleteBlock(containerId, blockIndex);
-    const ignoreObjectData = this.updatingBlockDataMap.get(blockId);
+    const ignoreObjectData = this.updatingBlockDataDeltaMap.get(blockId);
     if (ignoreObjectData) {
       console.debug(`ignore update object data before delete block: ${JSON.stringify(ignoreObjectData)}`);
-      this.updatingBlockDataMap.delete(blockId);
+      this.updatingBlockDataDeltaMap.delete(blockId);
     }
     this.handler.onDeleteBlock(containerId, blockIndex, this.local);
   }
@@ -46,26 +45,26 @@ class InternalParser {
 
   onDeleteBlockData(containerId: string, blockIndex: number, key: string) {
     const blockId = this.blockIds.getBlockId(containerId, blockIndex);
-    let blockData = this.updatingBlockDataMap.get(blockId);
-    if (!blockData) {
-      blockData = {};
-      this.updatingBlockDataMap.set(blockId, blockData);
+    let delta = this.updatingBlockDataDeltaMap.get(blockId);
+    if (!delta) {
+      delta = new OpBlockDataDelta();
+      this.updatingBlockDataDeltaMap.set(blockId, delta);
     }
-    blockData[key] = undefined;
+    delta.delete(key);
   }
 
   onInsertBlockData(containerId: string, blockIndex: number, key: string, value: unknown) {
     const blockId = this.blockIds.getBlockId(containerId, blockIndex);
-    let blockData = this.updatingBlockDataMap.get(blockId);
-    if (!blockData) {
-      blockData = {};
-      this.updatingBlockDataMap.set(blockId, blockData);
+    let delta = this.updatingBlockDataDeltaMap.get(blockId);
+    if (!delta) {
+      delta = new OpBlockDataDelta();
+      this.updatingBlockDataDeltaMap.set(blockId, delta);
     }
-    blockData[key] = value;
+    delta.insert(key, value);
   }
 
   executeUpdateBlockDataActions() {
-    Array.from(this.updatingBlockDataMap.entries()).forEach(([blockId, objectData]) => {
+    Array.from(this.updatingBlockDataDeltaMap.entries()).forEach(([blockId, objectData]) => {
       const { containerId, blockIndex } = this.blockIds.getBlockIndexById(blockId);
       this.handler.onUpdateBlockData(containerId, blockIndex, objectData, this.local);
     });
@@ -297,15 +296,6 @@ function parseOp(ops: Op[], parseType: ParseType, parser: InternalParser, handle
   assert(rootKey === 'blocks', `invalid op path: ${JSON.stringify(ops)}`);
   const containerId = ops[1] as unknown as string;
   assert(typeof containerId === 'string', `invalid container id: ${JSON.stringify(ops)}`);
-  // const path = ops[0] as unknown as string;
-  if (containerId !== 'root') {
-    if (typeof ops[2] === 'object') {
-      const op = ops[2] as any;
-      if (op.i) {
-        handler.onCreateContainer(containerId, op.i, parser.local);
-      }
-    }
-  }
   //
   if (Array.isArray(ops[2])) {
     if (parseType === ParseType.REMOVE) {
@@ -324,10 +314,14 @@ function parseOp(ops: Op[], parseType: ParseType, parser: InternalParser, handle
       // remove container,
       const action = ops[2] as any;
       if (action.r) {
-        handler.onDeleteContainer(containerId, parser.local);
+        if (parseType === ParseType.REMOVE) {
+          handler.onDeleteContainer(containerId, parser.local);
+        }
       }
       if (action.i) {
-        handler.onCreateContainer(containerId, action.i, parser.local);
+        if (parseType === ParseType.UPSERT) {
+          handler.onCreateContainer(containerId, action.i, parser.local);
+        }
       }
     } else {
       assert(typeof ops[2] === 'number');

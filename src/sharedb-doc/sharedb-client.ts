@@ -1,11 +1,10 @@
 /* eslint-disable no-lonely-if */
 /* eslint-disable max-classes-per-file */
-import isEqual from 'lodash.isequal';
 import ReconnectingWebSocket from 'reconnecting-websocket';
 import { Connection, Doc, Error as ShareDBError, types as ShareDBTypes } from 'sharedb/lib/client';
 import richText from '@nexteditorjs/nexteditor-core/dist/ot-types/rich-text';
 import * as json1 from 'ot-json1';
-import { DocObject } from '@nexteditorjs/nexteditor-core';
+import { DocBlock, DocBlockDelta, DocObject } from '@nexteditorjs/nexteditor-core';
 import { ShareDBDocOptions } from './options';
 
 const JSON1_TYPE_NAME = 'ot-json1';
@@ -42,8 +41,12 @@ export default class ShareDBDocClient {
 
   submitOp = async (ops: any) => new Promise<void>((resolve, reject) => {
     this.doc.submitOp(ops, {}, (err) => {
-      if (err) reject(err);
-      else resolve();
+      if (err) {
+        console.error(`invalid op, ${err.message}, ${JSON.stringify(ops)}`);
+        reject(err);
+      } else {
+        resolve();
+      }
     });
   });
 
@@ -54,62 +57,52 @@ export default class ShareDBDocClient {
     });
   });
 
-  insertObject = async (containerId: string, index: number, obj: unknown) => {
+  insertChildContainer = async (containerId: string, blocks: DocBlock[]) => {
+    const ops = ['blocks', containerId, { i: blocks }];
+    return this.submitOp(ops);
+  };
+
+  deleteChildContainer = async (containerId: string) => {
+    const ops = ['blocks', containerId, { r: true }];
+    return this.submitOp(ops);
+  };
+
+  insertBlock = async (containerId: string, index: number, obj: unknown) => {
     const ops = ['blocks', containerId, index, { i: obj }];
     return this.submitOp(ops);
   };
 
-  deleteObject = async (containerId: string, index: number) => {
+  deleteBlock = async (containerId: string, index: number) => {
     const ops = ['blocks', containerId, index, { r: true }];
     return this.submitOp(ops);
   };
 
-  replaceObject = async (containerId: string, index: number, obj: unknown) => {
-    const ops = ['blocks', containerId, index, { r: true, i: obj }];
-    return this.submitOp(ops);
-  };
-
-  updateObject = async (containerId: string, index: number, obj: { [index: string]: unknown }) => {
-    const oldData = this.data.blocks[containerId][index];
-    const ops: (string | number | (string | object)[])[] = [containerId, index];
-    Object.entries(obj).forEach(([key, newValue]) => {
-      if (isEqual(oldData[key], newValue)) {
-        // skip
-      } else {
-        //
-        if (oldData[key] === undefined) {
-          // old not exist, try insert (if needed)
-          if (newValue === undefined || newValue === null) {
-            //
-          } else {
-            const op = { i: newValue };
-            ops.push([key, op]);
-          }
-        } else {
-          // old exists, remove & insert (if needed)
-          if (newValue === undefined || newValue === null) {
-            const op = { r: true };
-            ops.push([key, op]);
-          } else {
-            const op = { r: true, i: newValue };
-            ops.push([key, op]);
-          }
-        }
+  updateBlockData = async (containerId: string, index: number, delta: DocBlockDelta) => {
+    if (delta.delete.length === 0 && Object.keys(delta.insert).length === 0) {
+      return Promise.resolve();
+    }
+    //
+    const ops: (string | number | (string | object)[])[] = ['blocks', containerId, index];
+    //
+    const deletedKeysSet = new Set(delta.delete);
+    Object.entries(delta.insert).forEach(([key, value]) => {
+      if (deletedKeysSet.has(key)) {
+        const op = { r: true, i: value };
+        ops.push([key, op]);
       }
     });
     //
-    Object.entries(oldData).forEach(([key, value]) => {
-      // set key to undefined or null to delete key
-      if (obj[key] === undefined || obj[key] === null) {
-        if (value !== undefined) {
-          const op = { r: true };
-          ops.push([key, op]);
-        }
-      }
+    delta.delete.forEach((key) => {
+      if (deletedKeysSet.has(key)) return;
+      const op = { r: true };
+      ops.push([key, op]);
     });
-    if (ops.length <= 2) {
-      return Promise.resolve();
-    }
+    Object.entries(delta.insert).forEach(([key, value]) => {
+      if (deletedKeysSet.has(key)) return;
+      const op = { i: value };
+      ops.push([key, op]);
+    });
+    //
     return this.submitOp(ops);
   };
 
