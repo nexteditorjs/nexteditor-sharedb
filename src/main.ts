@@ -12,8 +12,9 @@ assert(app, 'app does not exists');
 ShareDBDoc.load({
   server: 'ws://localhost:4000/sharedb-demo',
   collectionName: 'app-1',
-  documentId: 'doc-7',
+  documentId: 'doc-12',
 }).then((doc) => {
+  console.log(doc);
   const editor = createEditor(app, doc);
   (window as any).editor = editor;
 }).catch((err) => {

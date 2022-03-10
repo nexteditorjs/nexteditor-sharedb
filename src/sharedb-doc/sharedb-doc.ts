@@ -1,5 +1,5 @@
 import {
-  DocBlock, DocBlockText, NextEditorDoc, assert, DocBlockTextActions, DocObject, NextEditorDocCallbacks, genId,
+  DocBlock, DocBlockText, NextEditorDoc, assert, DocBlockTextActions, DocObject, NextEditorDocCallbacks, DocBlockDelta, createEmptyDoc,
 } from '@nexteditorjs/nexteditor-core';
 import { OpBlockData, OpParserHandler, parseOps } from './op-parser';
 import { ShareDBDocOptions } from './options';
@@ -26,13 +26,9 @@ export default class ShareDBDoc implements NextEditorDoc, OpParserHandler {
           //
           if (!doc.client.doc.type) {
             try {
-              await doc.client.createDoc({ blocks: [{
-                type: 'text',
-                id: genId(),
-                text: [],
-              }],
-              comments: {},
-              meta: {} });
+              const emptyDoc = createEmptyDoc();
+              console.log('create empty doc', emptyDoc);
+              await doc.client.createDoc(emptyDoc);
             } catch (err) {
               reject(err);
             }
@@ -44,7 +40,7 @@ export default class ShareDBDoc implements NextEditorDoc, OpParserHandler {
     });
   }
 
-  private get data() {
+  private get data(): DocObject {
     return this.client.data;
   }
 
@@ -57,7 +53,9 @@ export default class ShareDBDoc implements NextEditorDoc, OpParserHandler {
   }
 
   getContainerBlocks(containerId: string): DocBlock[] {
-    const blocks = this.data[containerId];
+    console.log('1');
+    const blocks = this.data.blocks[containerId];
+    console.log('2', blocks);
     return blocks;
   }
 
@@ -87,6 +85,22 @@ export default class ShareDBDoc implements NextEditorDoc, OpParserHandler {
     const newText = this.getBlockData(containerId, blockIndex).text;
     assert(newText, 'no block text');
     return newText;
+  }
+
+  localUpdateBlockData(containerId: string, blockIndex: number, delta: DocBlockDelta): DocBlock {
+    const oldBlockData = this.getBlockData(containerId, blockIndex);
+    // TODO: add update block data
+    return oldBlockData;
+  }
+
+  localInsertChildContainer(containerId: string, blocks: DocBlock[]): void {
+    //
+    // TODO: add insert container
+  }
+
+  localDeleteChildContainers(containerIds: string[]): void {
+    //
+    // TODO: add insert container
   }
 
   private handleOp = (ops: any[], source: any, clientId: any) => {

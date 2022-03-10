@@ -5,6 +5,7 @@ import ReconnectingWebSocket from 'reconnecting-websocket';
 import { Connection, Doc, Error as ShareDBError, types as ShareDBTypes } from 'sharedb/lib/client';
 import richText from '@nexteditorjs/nexteditor-core/dist/ot-types/rich-text';
 import * as json1 from 'ot-json1';
+import { DocObject } from '@nexteditorjs/nexteditor-core';
 import { ShareDBDocOptions } from './options';
 
 const JSON1_TYPE_NAME = 'ot-json1';
@@ -46,31 +47,31 @@ export default class ShareDBDocClient {
     });
   });
 
-  createDoc = async (data: unknown) => new Promise<void>((resolve, reject) => {
+  createDoc = async (data: DocObject) => new Promise<void>((resolve, reject) => {
     this.doc.create(data, JSON1_TYPE_NAME, (error) => {
       if (error) reject(error);
       else resolve();
     });
   });
 
-  insertObject = async (rootObjectName: string, index: number, obj: unknown) => {
-    const ops = [rootObjectName, index, { i: obj }];
+  insertObject = async (containerId: string, index: number, obj: unknown) => {
+    const ops = ['blocks', containerId, index, { i: obj }];
     return this.submitOp(ops);
   };
 
-  deleteObject = async (rootObjectName: string, index: number) => {
-    const ops = [rootObjectName, index, { r: true }];
+  deleteObject = async (containerId: string, index: number) => {
+    const ops = ['blocks', containerId, index, { r: true }];
     return this.submitOp(ops);
   };
 
-  replaceObject = async (rootObjectName: string, index: number, obj: unknown) => {
-    const ops = [rootObjectName, index, { r: true, i: obj }];
+  replaceObject = async (containerId: string, index: number, obj: unknown) => {
+    const ops = ['blocks', containerId, index, { r: true, i: obj }];
     return this.submitOp(ops);
   };
 
-  updateObject = async (rootObjectName: string, index: number, obj: { [index: string]: unknown }) => {
-    const oldData = this.data[rootObjectName][index];
-    const ops: (string | number | (string | object)[])[] = [rootObjectName, index];
+  updateObject = async (containerId: string, index: number, obj: { [index: string]: unknown }) => {
+    const oldData = this.data.blocks[containerId][index];
+    const ops: (string | number | (string | object)[])[] = [containerId, index];
     Object.entries(obj).forEach(([key, newValue]) => {
       if (isEqual(oldData[key], newValue)) {
         // skip
@@ -112,8 +113,8 @@ export default class ShareDBDocClient {
     return this.submitOp(ops);
   };
 
-  updateRichText = async (rootObjectName: string, index: number, ops: any[]) => {
-    const op = [rootObjectName, index, 'text', { e: ops, et: 'rich-text' }];
+  updateRichText = async (containerId: string, index: number, ops: any[]) => {
+    const op = ['blocks', containerId, index, 'text', { e: ops, et: 'rich-text' }];
     return this.submitOp(op);
   };
 }

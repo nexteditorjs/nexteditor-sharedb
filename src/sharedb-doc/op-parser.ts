@@ -286,42 +286,52 @@ function parseBlockOp(containerId: string, orgOps: Op[], processType: ParseType,
 }
 
 function parseOp(ops: Op[], parseType: ParseType, parser: InternalParser, handler: OpParserHandler) {
-  const path = ops[0] as unknown as string;
-  const containerId: string = path;
-  if (containerId !== 'blocks') {
-    if (typeof ops[1] === 'object') {
-      const op = ops[1] as any;
+  //
+  const rootKey = ops[0] as unknown as string;
+  if (rootKey === 'meta') {
+    // parse meta
+    console.debug(`meta changed, ${JSON.stringify(ops)}`);
+    return;
+  }
+  //
+  assert(rootKey === 'blocks', `invalid op path: ${JSON.stringify(ops)}`);
+  const containerId = ops[1] as unknown as string;
+  assert(typeof containerId === 'string', `invalid container id: ${JSON.stringify(ops)}`);
+  // const path = ops[0] as unknown as string;
+  if (containerId !== 'root') {
+    if (typeof ops[2] === 'object') {
+      const op = ops[2] as any;
       if (op.i) {
         handler.onCreateContainer(containerId, op.i, parser.local);
       }
     }
   }
   //
-  if (Array.isArray(ops[1])) {
+  if (Array.isArray(ops[2])) {
     if (parseType === ParseType.REMOVE) {
       ops.slice(1).reverse().forEach((op) => {
         parseBlockOp(containerId, op as unknown as Op[], parseType, parser);
       });
     } else {
-      ops.slice(1).forEach((op) => {
+      ops.slice(2).forEach((op) => {
         parseBlockOp(containerId, op as unknown as Op[], parseType, parser);
       });
     }
     //
   } else {
     // eslint-disable-next-line no-lonely-if
-    if (typeof ops[1] === 'object') {
+    if (typeof ops[2] === 'object') {
       // remove container,
-      const action = ops[1] as any;
+      const action = ops[2] as any;
       if (action.r) {
-        handler.onDeleteContainer(path, parser.local);
+        handler.onDeleteContainer(containerId, parser.local);
       }
       if (action.i) {
-        handler.onCreateContainer(path, action.i, parser.local);
+        handler.onCreateContainer(containerId, action.i, parser.local);
       }
     } else {
-      assert(typeof ops[1] === 'number');
-      parseBlockOp(containerId, ops.slice(1), parseType, parser);
+      assert(typeof ops[2] === 'number');
+      parseBlockOp(containerId, ops.slice(2), parseType, parser);
     }
   }
 }
