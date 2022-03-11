@@ -77,9 +77,7 @@ export default class ShareDBDoc implements NextEditorDoc, OpParserHandler {
   }
 
   getContainerBlocks(containerId: string): DocBlock[] {
-    console.log('1');
     const blocks = this.data.blocks[containerId];
-    console.log('2', blocks);
     return blocks;
   }
 

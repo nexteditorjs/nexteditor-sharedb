@@ -150,6 +150,8 @@ function parseBlockOp(containerId: string, orgOps: Op[], processType: ParseType,
     return;
   }
   //
+  assert(Array.isArray(orgOps), `invalid block op: ${containerId}, ${JSON.stringify(orgOps)}`);
+  //
   const ops = orgOps.concat();
   const blockIndex = ops[0] as unknown as number;
   ops.shift();
@@ -284,22 +286,40 @@ function parseBlockOp(containerId: string, orgOps: Op[], processType: ParseType,
   });
 }
 
+function parseMetaOp(ops: Op[], parseType: ParseType, parser: InternalParser, handler: OpParserHandler) {
+  console.warn(`unsupported meta op, ${JSON.stringify(ops)}`);
+}
+
 function parseOp(ops: Op[], parseType: ParseType, parser: InternalParser, handler: OpParserHandler) {
   //
   const rootKey = ops[0] as unknown as string;
   if (rootKey === 'meta') {
     // parse meta
-    console.debug(`meta changed, ${JSON.stringify(ops)}`);
+    parseMetaOp(ops, parseType, parser, handler);
     return;
   }
   //
   assert(rootKey === 'blocks', `invalid op path: ${JSON.stringify(ops)}`);
+  //
   const containerId = ops[1] as unknown as string;
+  //
+  if (Array.isArray(containerId)) {
+    // multi container op
+    const subOps = ops.slice(1) as unknown as Op[][];
+    subOps.forEach((subOp) => {
+      const newOp = [rootKey, ...subOp];
+      parseOp(newOp as Op[], parseType, parser, handler);
+      //
+    });
+    //
+    return;
+  }
+  //
   assert(typeof containerId === 'string', `invalid container id: ${JSON.stringify(ops)}`);
   //
   if (Array.isArray(ops[2])) {
     if (parseType === ParseType.REMOVE) {
-      ops.slice(1).reverse().forEach((op) => {
+      ops.slice(2).reverse().forEach((op) => {
         parseBlockOp(containerId, op as unknown as Op[], parseType, parser);
       });
     } else {
@@ -338,6 +358,7 @@ export function parseOps(orgOps: Op[], handler: OpParserHandler, local: boolean)
     const parseType = i === 0 ? ParseType.REMOVE : ParseType.UPSERT;
     const ops = cloneDeep(orgOps);
     const first = ops[0];
+    //
     if (Array.isArray(first)) {
       ops.forEach((op) => {
         parseOp(op as unknown as Op[], parseType, parser, handler);
