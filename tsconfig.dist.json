@@ -7,7 +7,6 @@
     "lib": ["ESNext", "DOM"],
     "moduleResolution": "Node",
     "strict": true,
-    "noImplicitAny": false,
     "sourceMap": true,
     "outDir": "./dist",
     "resolveJsonModule": true,
