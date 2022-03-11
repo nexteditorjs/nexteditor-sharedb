@@ -1,11 +1,11 @@
 /* eslint-disable no-lonely-if */
 /* eslint-disable max-classes-per-file */
-import ReconnectingWebSocket from 'reconnecting-websocket';
-import { Connection, Doc, Error as ShareDBError, types as ShareDBTypes } from 'sharedb/lib/client';
+import ReconnectingWebSocket, { ErrorEvent, CloseEvent } from 'reconnecting-websocket';
+import { Connection, Doc, types as ShareDBTypes } from 'sharedb/lib/client';
 import richText from '@nexteditorjs/nexteditor-core/dist/ot-types/rich-text';
 import * as json1 from 'ot-json1';
 import { DocBlock, DocBlockDelta, DocObject } from '@nexteditorjs/nexteditor-core';
-import { ShareDBDocOptions } from './options';
+import { ClientError, ErrorType, ShareDBDocOptions, ShareDBError } from './options';
 
 const JSON1_TYPE_NAME = 'ot-json1';
 
@@ -13,11 +13,11 @@ json1.type.registerSubtype(richText.type);
 json1.type.name = JSON1_TYPE_NAME;
 ShareDBTypes.register(json1.type);
 
-export { ShareDBError };
-
-interface ShareDBDocClientEvent {
-  onSubscribe: (err: ShareDBError) => void;
+export interface ShareDBDocClientEvent {
+  onSubscribe: () => void;
   onOp: (ops: any[], source: any, clientId: string) => void;
+  onError: (errorType: ErrorType, error: ClientError) => void;
+  onClose: (event: CloseEvent) => void;
 }
 
 export default class ShareDBDocClient {
@@ -29,15 +29,33 @@ export default class ShareDBDocClient {
 
   constructor(private options: ShareDBDocOptions, private events: ShareDBDocClientEvent) {
     this.socket = new ReconnectingWebSocket(options.server);
+    this.socket.onerror = this.handleSocketError;
+    this.socket.onclose = this.handleSocketClose;
     this.connection = new Connection(this.socket as any);
     this.doc = this.connection.get(options.collectionName, options.documentId);
-    this.doc.subscribe(this.events.onSubscribe);
+    this.doc.subscribe(this.handleSubscribe);
     this.doc.on('op', this.events.onOp);
   }
 
   get data() {
     return this.doc.data;
   }
+
+  handleSubscribe = (error: ShareDBError | undefined) => {
+    if (error) {
+      this.events.onError('Subscribe', error);
+    } else {
+      this.events.onSubscribe();
+    }
+  };
+
+  handleSocketError = (error: ErrorEvent) => {
+    this.events.onError('WebSocket', error);
+  };
+
+  handleSocketClose = (event: CloseEvent) => {
+    this.events.onClose(event);
+  };
 
   submitOp = async (ops: any) => new Promise<void>((resolve, reject) => {
     this.doc.submitOp(ops, {}, (err) => {

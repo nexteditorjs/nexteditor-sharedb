@@ -12,7 +12,7 @@
     "start-server": "cd ../nexteditor-sharedb-server && node ./index.js",
     "start-client": "vite",
     "dev": "npm-run-all --parallel start-server start-client",
-    "build": "note ./build.js"
+    "build": "vite build && tsc --emitDeclarationOnly"
   },
   "dependencies": {
     "@nexteditorjs/nexteditor-core": "0.0.2",

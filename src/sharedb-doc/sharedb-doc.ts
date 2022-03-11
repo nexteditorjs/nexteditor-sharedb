@@ -4,43 +4,65 @@ import {
 import cloneDeep from 'lodash.clonedeep';
 import OpBlockDataDelta from './op-block-delta';
 import { OpParserHandler, parseOps } from './op-parser';
-import { ShareDBDocOptions } from './options';
-import ShareDBDocClient, { ShareDBError } from './sharedb-client';
+import { ClientError, ErrorType, ShareDBDocOptions } from './options';
+import ShareDBDocClient from './sharedb-client';
 
 export default class ShareDBDoc implements NextEditorDoc, OpParserHandler {
   callbacks: NextEditorDocCallbacks | null = null;
 
   client: ShareDBDocClient;
 
-  private constructor(options: ShareDBDocOptions, onSubscribe: (err: ShareDBError) => void) {
+  private constructor(options: ShareDBDocOptions, onSubscribe: () => void, onLoadError: (type: ErrorType, error: ClientError) => void) {
+    //
+    let loaded = false;
+    //
+    const errorHandler = (type: ErrorType, error: ClientError) => {
+      if (loaded) {
+        options.onDocError(type, error);
+      } else {
+        onLoadError(type, error);
+      }
+    };
+    //
+    const subscribeHandler = () => {
+      loaded = true;
+      onSubscribe();
+    };
+    //
     this.client = new ShareDBDocClient(options, {
-      onSubscribe,
+      onSubscribe: subscribeHandler,
+      onError: errorHandler,
       onOp: this.handleOp,
+      onClose: this.handleSocketClose,
     });
   }
 
   static load(options: ShareDBDocOptions): Promise<ShareDBDoc> {
     return new Promise((resolve, reject) => {
-      const doc = new ShareDBDoc(options, async (err) => {
-        if (err) {
-          reject(err);
-        } else {
-          //
-          if (!doc.client.doc.type) {
-            try {
-              const emptyDoc = createEmptyDoc();
-              console.log('create empty doc', emptyDoc);
-              await doc.client.createDoc(emptyDoc);
-            } catch (err) {
-              reject(err);
-            }
+      const doc = new ShareDBDoc(options, async () => {
+        if (!doc.client.doc.type) {
+          try {
+            const emptyDoc = options.docTemplate ?? createEmptyDoc();
+            await doc.client.createDoc(emptyDoc);
+          } catch (err) {
+            reject(err);
+            return;
           }
-          //
-          resolve(doc);
         }
+        resolve(doc);
+      }, (err) => {
+        reject(err);
       });
     });
   }
+
+  private handleClientError = () => {
+
+  };
+
+  private handleSocketClose = () => {
+
+  };
 
   private get data(): DocObject {
     return this.client.data;

@@ -12,6 +12,9 @@ ShareDBDoc.load({
   server: 'ws://localhost:4000/sharedb-demo',
   collectionName: 'app-1',
   documentId: 'doc-14',
+  onDocError: (type, error) => {
+    console.error(type, error);
+  },
 }).then((doc) => {
   const editor = createEditor(app, doc, {
     components: {
