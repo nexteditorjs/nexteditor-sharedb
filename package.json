@@ -11,7 +11,8 @@
     "start-server": "cd ../nexteditor-sharedb-server && node ./index.js",
     "start-client": "vite",
     "dev": "npm-run-all --parallel start-server start-client",
-    "build": "vite build && tsc --emitDeclarationOnly"
+    "build": "vite build && tsc --emitDeclarationOnly",
+    "dist": "vite build && tsc --emitDeclarationOnly --project tsconfig.dist.json"
   },
   "dependencies": {
     "@nexteditorjs/nexteditor-core": "^0.0.17",
