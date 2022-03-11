@@ -132,33 +132,33 @@ export default class ShareDBDoc implements NextEditorDoc, OpParserHandler {
 
   onDeleteBlock(containerId: string, blockIndex: number, local: boolean): void {
     assert(this.callbacks, 'no callbacks');
-    this.callbacks.onDeleteBlock(containerId, blockIndex, local);
+    if (this.callbacks.onDeleteBlock) this.callbacks.onDeleteBlock(containerId, blockIndex, local);
   }
 
   onInsertBlock(containerId: string, blockIndex: number, data: DocBlock, local: boolean): void {
     assert(this.callbacks, 'no callbacks');
-    this.callbacks.onInsertBlock(containerId, blockIndex, data, local);
+    if (this.callbacks.onInsertBlock) this.callbacks.onInsertBlock(containerId, blockIndex, data, local);
   }
 
   onUpdateBlockData(containerId: string, blockIndex: number, delta: OpBlockDataDelta, local: boolean): void {
     assert(this.callbacks, 'no callbacks');
-    this.callbacks.onUpdateBlockData(containerId, blockIndex, delta.toDocBlockDelta(), local);
+    if (this.callbacks.onUpdateBlockData) this.callbacks.onUpdateBlockData(containerId, blockIndex, delta.toDocBlockDelta(), local);
   }
 
   onUpdateBlockText(containerId: string, blockIndex: number, actions: DocBlockTextActions, local: boolean): void {
     assert(this.callbacks, 'no callbacks');
-    this.callbacks.onUpdateBlockText(containerId, blockIndex, actions, local);
+    if (this.callbacks.onUpdateBlockText) this.callbacks.onUpdateBlockText(containerId, blockIndex, actions, local);
   }
 
   onDeleteContainer(containerId: string, local: boolean): void {
     assert(this.callbacks, 'no callbacks');
     assert(containerId !== 'root', 'should not delete root container in doc');
-    this.callbacks.onDeleteChildContainer(containerId, local);
+    if (this.callbacks.onDeleteChildContainer) this.callbacks.onDeleteChildContainer(containerId, local);
   }
 
   onCreateContainer(containerId: string, blocks: DocBlock[], local: boolean): void {
     assert(this.callbacks, 'no callbacks');
     assert(containerId !== 'root', 'should not create root container in doc');
-    this.callbacks.onInsertChildContainer(containerId, blocks, local);
+    if (this.callbacks.onInsertChildContainer) this.callbacks.onInsertChildContainer(containerId, blocks, local);
   }
 }
