@@ -18,6 +18,5 @@
     "noUnusedParameters": false,
     "noImplicitReturns": true
   },
-  "exclude": ["./src/main.ts"],
   "include": ["./src"]
 }

@@ -19,7 +19,6 @@
     "lodash.isequal": "^4.5.0",
     "lodash.clonedeep": "^4.5.0",
     "ot-json1": "^1.0.2",
-    "quill-delta": "^4.2.2",
     "reconnecting-websocket": "^4.4.0",
     "rich-text": "^4.1.0",
     "sharedb": "^2.2.5"

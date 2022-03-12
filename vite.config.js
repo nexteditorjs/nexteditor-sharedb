@@ -24,7 +24,15 @@ module.exports = defineConfig({
     rollupOptions: {
       // make sure to externalize deps that shouldn't be bundled
       // into your library
-      "external": ["@nexteditorjs/nexteditor-core"],
+      "external": [
+        "@nexteditorjs/nexteditor-core",
+        "lodash.isequal",
+        "lodash.clonedeep",
+        "ot-json1",
+        "reconnecting-websocket",
+        "rich-text",
+        "sharedb",
+      ],
       output: {
         // Provide global variables to use in the UMD build
         // for externalized deps
