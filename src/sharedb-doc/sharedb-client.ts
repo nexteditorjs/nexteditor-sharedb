@@ -41,6 +41,11 @@ export default class ShareDBDocClient {
     return this.doc.data;
   }
 
+  destroy() {
+    this.doc.removeAllListeners();
+    this.connection.close();
+  }
+
   handleSubscribe = (error: ShareDBError | undefined) => {
     if (error) {
       this.events.onError('Subscribe', error);

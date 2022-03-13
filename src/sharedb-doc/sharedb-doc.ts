@@ -161,4 +161,9 @@ export default class ShareDBDoc implements NextEditorDoc, OpParserHandler {
     assert(containerId !== 'root', 'should not create root container in doc');
     if (this.callbacks.onInsertChildContainer) this.callbacks.onInsertChildContainer(containerId, blocks, local);
   }
+
+  destroy(): void {
+    this.client.destroy();
+    this.callbacks = null;
+  }
 }
