@@ -33,6 +33,7 @@ export default class ShareDBDocClient {
     this.socket.onclose = this.handleSocketClose;
     this.connection = new Connection(this.socket as any);
     this.doc = this.connection.get(options.collectionName, options.documentId);
+    this.doc.preventCompose = true;
     this.doc.subscribe(this.handleSubscribe);
     this.doc.on('op', this.events.onOp);
   }
