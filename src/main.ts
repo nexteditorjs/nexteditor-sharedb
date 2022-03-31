@@ -1,9 +1,10 @@
 /* eslint-disable import/no-extraneous-dependencies */
-import { assert, createEditor } from '@nexteditorjs/nexteditor-core';
+import { assert, createEditor, RemoteCursorInsertion } from '@nexteditorjs/nexteditor-core';
 import TableBlock from '@nexteditorjs/nexteditor-table-block';
 import { MarkdownInputHandler } from '@nexteditorjs/nexteditor-input-handlers';
 import './style.css';
 import ShareDBDoc from './sharedb-doc';
+import { RemoteCursorDecorator, BroadcastCursor } from './remote-cursor-decorator';
 
 const app = document.querySelector<HTMLDivElement>('#app');
 assert(app, 'app does not exists');
@@ -19,8 +20,11 @@ ShareDBDoc.load({
   const editor = createEditor(app, doc, {
     components: {
       blocks: [TableBlock],
+      insertions: [RemoteCursorInsertion],
+      decorators: [new RemoteCursorDecorator()],
     },
   });
+  editor.registerCallback(new BroadcastCursor(editor));
   editor.input.addHandler(new MarkdownInputHandler());
   (window as any).editor = editor;
 }).catch((err) => {

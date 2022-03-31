@@ -1,11 +1,13 @@
 /* eslint-disable no-lonely-if */
 /* eslint-disable max-classes-per-file */
 import ReconnectingWebSocket, { ErrorEvent, CloseEvent } from 'reconnecting-websocket';
-import { Connection, Doc, types as ShareDBTypes } from 'sharedb/lib/client';
+import { Connection, Doc, LocalPresence, Presence, types as ShareDBTypes } from 'sharedb/lib/client';
 import richText from '@nexteditorjs/nexteditor-core/dist/ot-types/rich-text';
 import * as json1 from 'ot-json1';
-import { DocBlock, DocBlockDelta, DocObject } from '@nexteditorjs/nexteditor-core';
+import { assert, DocBlock, DocBlockDelta, DocObject, genId } from '@nexteditorjs/nexteditor-core';
 import { ClientError, ErrorType, ShareDBDocOptions, ShareDBError } from './options';
+import { NextEditorCustomMessage, NextEditorInitMessage, NextEditorJoinMessage, NextEditorPresenceMessage, NextEditorUser, NextEditorWelcomeMessage } from '../messages';
+import RemoteUsers from '../remote-users/remote-users';
 
 const JSON1_TYPE_NAME = 'ot-json1';
 
@@ -25,24 +27,44 @@ export default class ShareDBDocClient {
 
   private connection: Connection;
 
+  private presence: Presence;
+
+  private localPresence: LocalPresence | null = null;
+
+  private orgMessageHandler: ((event: MessageEvent<unknown>) => void) | null;
+
+  private docUser: NextEditorUser | null = null;
+
+  public remoteUsers: RemoteUsers = new RemoteUsers();
+
   doc: Doc;
 
   constructor(private options: ShareDBDocOptions, private events: ShareDBDocClientEvent) {
-    this.socket = new ReconnectingWebSocket(options.server);
+    this.socket = new ReconnectingWebSocket(`${options.server}/${options.collectionName}/${options.documentId}`);
     this.socket.onerror = this.handleSocketError;
     this.socket.onclose = this.handleSocketClose;
     this.connection = new Connection(this.socket as any);
+    this.orgMessageHandler = this.socket.onmessage;
+    this.socket.onmessage = this.handleWebsocketMessage;
     this.doc = this.connection.get(options.collectionName, options.documentId);
     this.doc.preventCompose = true;
-    this.doc.subscribe(this.handleSubscribe);
-    this.doc.on('op', this.events.onOp);
+    this.presence = this.connection.getPresence(`${options.collectionName}/${options.documentId}`);
+    this.presence.subscribe((error) => {
+      this.presence.on('receive', this.handlePresenceMessage);
+    });
   }
 
   get data() {
     return this.doc.data;
   }
 
+  get user() {
+    assert(this.docUser, 'user have not initialized');
+    return this.docUser;
+  }
+
   destroy() {
+    this.presence.unsubscribe();
     this.doc.removeAllListeners();
     this.connection.close();
   }
@@ -52,6 +74,7 @@ export default class ShareDBDocClient {
       this.events.onError('Subscribe', error);
     } else {
       this.events.onSubscribe();
+      this.sendJoinMessage();
     }
   };
 
@@ -61,6 +84,74 @@ export default class ShareDBDocClient {
 
   handleSocketClose = (event: CloseEvent) => {
     this.events.onClose(event);
+  };
+
+  handleWebsocketMessage = (event: MessageEvent<unknown>): void => {
+    if (this.handleCustomMessage(event)) {
+      return;
+    }
+    if (this.orgMessageHandler) {
+      this.orgMessageHandler(event);
+    }
+  };
+
+  handleCustomMessage = (event: MessageEvent<unknown>) => {
+    const data = event.data;
+    if (typeof data !== 'string') {
+      return false;
+    }
+    //
+    try {
+      const message = JSON.parse(data) as NextEditorCustomMessage;
+      if (typeof message === 'object' && typeof message.nexteditor === 'string') {
+        this.handleKnownCustomMessage(message);
+        return true;
+      }
+    } catch (err) {
+      // ignore json parse error
+    }
+    return false;
+  };
+
+  handleKnownCustomMessage = (message: NextEditorCustomMessage) => {
+    if (message.nexteditor === 'init') {
+      this.handleInitMessage(message as NextEditorInitMessage);
+    } else if (message.nexteditor === 'welcome') {
+      this.handleWelcomeMessage(message as NextEditorWelcomeMessage);
+    }
+  };
+
+  handleInitMessage = (message: NextEditorInitMessage) => {
+    this.docUser = message.user;
+    assert(!this.localPresence, 'local presence has already exists');
+    this.localPresence = this.presence.create(this.docUser.clientId);
+    this.doc.subscribe(this.handleSubscribe);
+    this.doc.on('op', this.events.onOp);
+  };
+
+  handleWelcomeMessage = (message: NextEditorWelcomeMessage) => {
+    this.remoteUsers.addUsers(message.onlineUsers);
+  };
+
+  handlePresenceMessage = (id: string, value: unknown) => {
+    const message = value as NextEditorPresenceMessage;
+    if (message?.nexteditor === 'join') {
+      this.remoteUsers.addUser(message.user);
+    } else if (message?.nexteditor === 'cursor') {
+      this.remoteUsers.setCursor(message);
+    } else if (value === null) {
+      this.remoteUsers.removeUser(id);
+    }
+  };
+
+  sendJoinMessage = () => {
+    assert(this.localPresence, 'no local presence');
+    assert(this.user, 'fault error, not joined');
+    const joinMessage: NextEditorJoinMessage = {
+      nexteditor: 'join',
+      user: this.user,
+    };
+    this.localPresence.submit(joinMessage);
   };
 
   submitOp = async (ops: any) => new Promise<void>((resolve, reject) => {
@@ -133,5 +224,18 @@ export default class ShareDBDocClient {
   updateRichText = async (containerId: string, index: number, ops: any[]) => {
     const op = ['blocks', containerId, index, 'text', { e: ops, et: 'rich-text' }];
     return this.submitOp(op);
+  };
+
+  broadcastClientMessages = (data: NextEditorPresenceMessage): Promise<void> => {
+    if (!this.localPresence) {
+      return Promise.reject(new Error('not connected'));
+    }
+    return new Promise((resolve, reject) => {
+      assert(this.localPresence);
+      this.localPresence.submit(data, (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
   };
 }

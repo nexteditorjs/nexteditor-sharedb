@@ -7,17 +7,29 @@
   "main": "./dist/index.umd.js",
   "module": "./dist/index.es.js",
   "types": "./dist/index.d.ts",
+
+  "exports": {
+    ".": {
+      "import": "./dist/index.es.js",
+      "require": "./dist/index.umd.js"
+    },
+    "./dist/messages": {
+      "import": "./dist/messages/index.es.js",
+      "require": "./dist/messages/index.umd.js"
+    }
+  },
   "scripts": {
-    "start-server": "cd ../nexteditor-sharedb-server && node ./index.js",
+    "start-server": "cd ../nexteditor-sharedb-server && yarn dev",
     "start-client": "vite",
     "dev": "npm-run-all --parallel start-server start-client",
-    "build": "vite build && tsc --emitDeclarationOnly",
-    "dist": "vite build && tsc --emitDeclarationOnly --project tsconfig.dist.json"
+    "build": "vite build && node ./build.js && tsc --emitDeclarationOnly",
+    "dist": "vite build && node ./build.js && tsc --emitDeclarationOnly --project tsconfig.dist.json"
   },
   "dependencies": {
     "@nexteditorjs/nexteditor-core": "^0.0.28",
     "lodash.isequal": "^4.5.0",
     "lodash.clonedeep": "^4.5.0",
+    "lodash.debounce": "^4.0.8",
     "ot-json1": "^1.0.2",
     "reconnecting-websocket": "^4.4.0",
     "rich-text": "^4.1.0",
@@ -28,6 +40,7 @@
     "@nexteditorjs/nexteditor-table-block": "^0.0.28",
     "@types/lodash.isequal": "^4.5.5",
     "@types/lodash.clonedeep": "^4.5.5",
+    "@types/lodash.debounce": "^4.0.6",
     "@types/events": "^3.0.0",
     "@types/node": "^17.0.21",
     "@types/sharedb": "^2.2.0",
