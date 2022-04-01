@@ -42,7 +42,7 @@ export default class ShareDBDocClient {
   doc: Doc;
 
   constructor(private options: ShareDBDocOptions, private events: ShareDBDocClientEvent) {
-    this.socket = new ReconnectingWebSocket(`${options.server}/${options.collectionName}/${options.documentId}`);
+    this.socket = new ReconnectingWebSocket(`${options.server}/${options.collectionName}/${options.documentId}`, [options.token]);
     this.socket.onerror = this.handleSocketError;
     this.socket.onclose = this.handleSocketClose;
     this.connection = new Connection(this.socket as any);
@@ -115,7 +115,7 @@ export default class ShareDBDocClient {
         return true;
       }
     } catch (err) {
-      console.error((err as Error).message);
+      console.error(JSON.stringify(err));
     }
     return false;
   };
@@ -132,7 +132,7 @@ export default class ShareDBDocClient {
     if (this.localPresence) {
       console.debug('reconnected');
       assert(this.docUser, 'user not exists');
-      assert(this.docUser.userId === message.user.userId);
+      assert(this.docUser.userId === message.user.userId, 'reconnect, user does not match');
       this.docUser = message.user;
       return;
     }
@@ -150,6 +150,7 @@ export default class ShareDBDocClient {
   handlePresenceMessage = (id: string, value: unknown) => {
     const message = value as NextEditorPresenceMessage;
     if (message?.nexteditor === 'join') {
+      console.debug(`${message.user.name} [${message.user.clientId}]join`);
       this.remoteUsers.addUser(message.user);
     } else if (message?.nexteditor === 'cursor') {
       this.remoteUsers.setCursor(message);
@@ -161,6 +162,7 @@ export default class ShareDBDocClient {
   sendJoinMessage = () => {
     assert(this.localPresence, 'no local presence');
     assert(this.user, 'fault error, not joined');
+    console.debug(`send join message, ${this.user.name} [${this.user.clientId}]`);
     const joinMessage: NextEditorJoinMessage = {
       nexteditor: 'join',
       user: this.user,

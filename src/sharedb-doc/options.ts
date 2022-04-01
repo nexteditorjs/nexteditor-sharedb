@@ -12,6 +12,7 @@ export type ShareDBDocOptions = {
   server: string;
   collectionName: string;
   documentId: string;
+  token: string;
   docTemplate?: DocObject;
   onDocError: (type: ErrorType, error: unknown) => void;
 };

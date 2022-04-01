@@ -19,9 +19,12 @@ if (!docId) {
   document.location.replace(newUrl);
 }
 
+const token = genId();
+
 ShareDBDoc.load({
-  server: 'ws://localhost:4000/sharedb-demo',
+  server: 'ws://localhost:4000/sharedb-demo?token=',
   collectionName: 'app-1',
+  token,
   documentId: docId,
   onDocError: (type, error) => {
     console.error(`type, ${(error as Error).message}`);
