@@ -1,10 +1,17 @@
 import { NextEditorDocSimpleBlockPos } from '@nexteditorjs/nexteditor-core';
+import events from 'events';
 import { NextEditorClientCursorMessage, NextEditorUser } from '../messages';
 
-export default class RemoteUsers {
+declare interface RemoteUsers {
+  on(event: 'change', listener: (users: NextEditorUser[]) => void): this;
+}
+
+class RemoteUsers extends events.EventEmitter {
   private users = new Map<string, NextEditorUser>();
 
   private cursors = new Map<string, NextEditorClientCursorMessage>();
+
+  private addingUser = false;
 
   setCursor(message: NextEditorClientCursorMessage) {
     this.addUser(message.user);
@@ -12,16 +19,23 @@ export default class RemoteUsers {
   }
 
   addUsers(users: NextEditorUser[]) {
+    this.addingUser = true;
     users.forEach((user) => this.addUser(user));
+    this.addingUser = false;
+    this.emit('change', Array.from(this.users.values()));
   }
 
   addUser(user: NextEditorUser) {
     this.users.set(user.clientId, user);
+    if (!this.addingUser) {
+      this.emit('change', Array.from(this.users.values()));
+    }
   }
 
   removeUser(clientId: string) {
     this.users.delete(clientId);
     this.cursors.delete(clientId);
+    this.emit('change', Array.from(this.users.values()));
   }
 
   getCursors(blockId: string) {
@@ -41,3 +55,5 @@ export default class RemoteUsers {
     return ret;
   }
 }
+
+export default RemoteUsers;

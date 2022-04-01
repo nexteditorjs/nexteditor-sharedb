@@ -1,10 +1,12 @@
 /* eslint-disable max-classes-per-file */
-import { assert, DocBlock, DocBlockTextActions } from '@nexteditorjs/nexteditor-core';
+import { assert, DocBlock, DocBlockTextActions, getLogger } from '@nexteditorjs/nexteditor-core';
 import cloneDeep from 'lodash.clonedeep';
 import { Op } from 'sharedb';
 import { ContainerBlockIds } from './block-ids';
 import OpBlockDataDelta from './op-block-delta';
 // import testJson from './test.json';
+
+const console = getLogger('op-parser');
 
 export interface OpParserHandler {
   onDeleteBlock: (containerId: string, blockIndex: number, local: boolean) => void;

@@ -4,7 +4,7 @@ import { Error as ShareDBError } from 'sharedb/lib/client';
 
 export { ShareDBError };
 
-export type ErrorType = 'WebSocket' | 'Subscribe';
+export type ErrorType = 'WebSocket' | 'Subscribe' | 'Presence';
 
 export type ClientError = Error | ErrorEvent | ShareDBError;
 

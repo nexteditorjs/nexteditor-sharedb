@@ -4,10 +4,12 @@ import ReconnectingWebSocket, { ErrorEvent, CloseEvent } from 'reconnecting-webs
 import { Connection, Doc, LocalPresence, Presence, types as ShareDBTypes } from 'sharedb/lib/client';
 import richText from '@nexteditorjs/nexteditor-core/dist/ot-types/rich-text';
 import * as json1 from 'ot-json1';
-import { assert, DocBlock, DocBlockDelta, DocObject, genId } from '@nexteditorjs/nexteditor-core';
+import { assert, DocBlock, DocBlockDelta, DocObject, getLogger } from '@nexteditorjs/nexteditor-core';
 import { ClientError, ErrorType, ShareDBDocOptions, ShareDBError } from './options';
 import { NextEditorCustomMessage, NextEditorInitMessage, NextEditorJoinMessage, NextEditorPresenceMessage, NextEditorUser, NextEditorWelcomeMessage } from '../messages';
 import RemoteUsers from '../remote-users/remote-users';
+
+const console = getLogger('client');
 
 const JSON1_TYPE_NAME = 'ot-json1';
 
@@ -49,9 +51,7 @@ export default class ShareDBDocClient {
     this.doc = this.connection.get(options.collectionName, options.documentId);
     this.doc.preventCompose = true;
     this.presence = this.connection.getPresence(`${options.collectionName}/${options.documentId}`);
-    this.presence.subscribe((error) => {
-      this.presence.on('receive', this.handlePresenceMessage);
-    });
+    this.presence.subscribe(this.handleSubscribePresence);
   }
 
   get data() {
@@ -76,6 +76,13 @@ export default class ShareDBDocClient {
       this.events.onSubscribe();
       this.sendJoinMessage();
     }
+  };
+
+  handleSubscribePresence = (error: unknown) => {
+    if (error) {
+      this.events.onError('Presence', new Error('failed to subscribe presence'));
+    }
+    this.presence.on('receive', this.handlePresenceMessage);
   };
 
   handleSocketError = (error: ErrorEvent) => {
@@ -108,7 +115,7 @@ export default class ShareDBDocClient {
         return true;
       }
     } catch (err) {
-      // ignore json parse error
+      console.error((err as Error).message);
     }
     return false;
   };
@@ -122,6 +129,13 @@ export default class ShareDBDocClient {
   };
 
   handleInitMessage = (message: NextEditorInitMessage) => {
+    if (this.localPresence) {
+      console.debug('reconnected');
+      assert(this.docUser, 'user not exists');
+      assert(this.docUser.userId === message.user.userId);
+      this.docUser = message.user;
+      return;
+    }
     this.docUser = message.user;
     assert(!this.localPresence, 'local presence has already exists');
     this.localPresence = this.presence.create(this.docUser.clientId);
