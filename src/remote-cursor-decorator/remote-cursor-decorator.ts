@@ -28,6 +28,7 @@ export class RemoteCursorDecorator implements NextEditorDecorator {
           type: 'remote-cursor',
           name: message.user.name,
           time: message.time,
+          rainbowIndex: message.user.rainbowIndex,
         };
         //
         if (now - message.time < 5 * 1000) {
@@ -42,30 +43,6 @@ export class RemoteCursorDecorator implements NextEditorDecorator {
       } else {
         insertions.set(offset, insertionsData);
       }
-    });
-    //
-    setTimeout(() => {
-      activeCursors.forEach((id) => {
-        const elem = findInsertionById(editor, id);
-        if (elem) {
-          // addClass(elem, 'active');
-          // elem.setAttribute('data-last-time', `${now}`);
-        }
-      });
-      //
-      setTimeout(() => {
-        const now = Date.now();
-        activeCursors.forEach((id) => {
-          const elem = findInsertionById(editor, id);
-          if (elem) {
-            const lastTime = Number.parseInt(elem.getAttribute('data-last-time') ?? '0', 10) ?? 0;
-            if (now - lastTime > 2900) {
-              removeClass(elem, 'active');
-            }
-          }
-        });
-      }, 3000);
-      //
     });
     //
     return {
