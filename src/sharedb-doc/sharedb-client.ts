@@ -4,10 +4,9 @@ import ReconnectingWebSocket, { ErrorEvent, CloseEvent } from 'reconnecting-webs
 import { Connection, Doc, LocalPresence, Presence, types as ShareDBTypes } from 'sharedb/lib/client';
 import richText from '@nexteditorjs/nexteditor-core/dist/ot-types/rich-text';
 import * as json1 from 'ot-json1';
-import { assert, DocBlock, DocBlockDelta, DocObject, getLogger } from '@nexteditorjs/nexteditor-core';
+import { assert, DocBlock, DocBlockDelta, DocObject, genId, getLogger, RemoteUsers, toBase64URL } from '@nexteditorjs/nexteditor-core';
 import { ClientError, ErrorType, ShareDBDocOptions, ShareDBError } from './options';
 import { NextEditorCustomMessage, NextEditorInitMessage, NextEditorJoinMessage, NextEditorPresenceMessage, NextEditorUser, NextEditorWelcomeMessage } from '../messages';
-import RemoteUsers from '../remote-users/remote-users';
 
 const console = getLogger('client');
 
@@ -39,10 +38,13 @@ export default class ShareDBDocClient {
 
   public remoteUsers: RemoteUsers = new RemoteUsers();
 
+  public clientId = genId();
+
   doc: Doc;
 
   constructor(private options: ShareDBDocOptions, private events: ShareDBDocClientEvent) {
-    this.socket = new ReconnectingWebSocket(`${options.server}/${options.collectionName}/${options.documentId}`, [options.token]);
+    const protocols = JSON.stringify({ token: options.token, clientId: this.clientId });
+    this.socket = new ReconnectingWebSocket(`${options.server}/${options.collectionName}/${options.documentId}`, toBase64URL(protocols));
     this.socket.onerror = this.handleSocketError;
     this.socket.onclose = this.handleSocketClose;
     this.connection = new Connection(this.socket as any);

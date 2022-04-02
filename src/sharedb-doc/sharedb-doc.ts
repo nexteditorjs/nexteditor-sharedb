@@ -1,5 +1,5 @@
 import {
-  DocBlock, DocBlockText, NextEditorDoc, assert, DocBlockTextActions, DocObject, NextEditorDocCallbacks, DocBlockDelta, createEmptyDoc,
+  DocBlock, DocBlockText, NextEditorDoc, assert, DocBlockTextActions, DocObject, NextEditorDocCallbacks, DocBlockDelta, createEmptyDoc, EventCallbacks,
 } from '@nexteditorjs/nexteditor-core';
 import cloneDeep from 'lodash.clonedeep';
 import OpBlockDataDelta from './op-block-delta';
@@ -7,12 +7,11 @@ import { OpParserHandler, parseOps } from './op-parser';
 import { ClientError, ErrorType, ShareDBDocOptions } from './options';
 import ShareDBDocClient from './sharedb-client';
 
-export default class ShareDBDoc implements NextEditorDoc, OpParserHandler {
-  callbacks: NextEditorDocCallbacks | null = null;
-
+export default class ShareDBDoc extends EventCallbacks<NextEditorDocCallbacks> implements NextEditorDoc, OpParserHandler {
   client: ShareDBDocClient;
 
   private constructor(options: ShareDBDocOptions, onSubscribe: () => void, onLoadError: (type: ErrorType, error: ClientError) => void) {
+    super();
     //
     let loaded = false;
     //
@@ -66,10 +65,6 @@ export default class ShareDBDoc implements NextEditorDoc, OpParserHandler {
 
   private get data(): DocObject {
     return this.client.data;
-  }
-
-  registerCallbacks(callbacks: NextEditorDocCallbacks): void {
-    this.callbacks = callbacks;
   }
 
   toJSON(): DocObject {
@@ -131,40 +126,40 @@ export default class ShareDBDoc implements NextEditorDoc, OpParserHandler {
   };
 
   onDeleteBlock(containerId: string, blockIndex: number, local: boolean): void {
-    assert(this.callbacks, 'no callbacks');
-    if (this.callbacks.onDeleteBlock) this.callbacks.onDeleteBlock(containerId, blockIndex, local);
+    assert(this.callbacks.length > 0, 'no callbacks');
+    this.callbacks.forEach((cb) => cb.onDeleteBlock?.(containerId, blockIndex, local));
   }
 
   onInsertBlock(containerId: string, blockIndex: number, data: DocBlock, local: boolean): void {
-    assert(this.callbacks, 'no callbacks');
-    if (this.callbacks.onInsertBlock) this.callbacks.onInsertBlock(containerId, blockIndex, data, local);
+    assert(this.callbacks.length > 0, 'no callbacks');
+    this.callbacks.forEach((cb) => cb.onInsertBlock?.(containerId, blockIndex, data, local));
   }
 
   onUpdateBlockData(containerId: string, blockIndex: number, delta: OpBlockDataDelta, local: boolean): void {
-    assert(this.callbacks, 'no callbacks');
-    if (this.callbacks.onUpdateBlockData) this.callbacks.onUpdateBlockData(containerId, blockIndex, delta.toDocBlockDelta(), local);
+    assert(this.callbacks.length > 0, 'no callbacks');
+    this.callbacks.forEach((cb) => cb.onUpdateBlockData?.(containerId, blockIndex, delta.toDocBlockDelta(), local));
   }
 
   onUpdateBlockText(containerId: string, blockIndex: number, actions: DocBlockTextActions, local: boolean): void {
-    assert(this.callbacks, 'no callbacks');
+    assert(this.callbacks.length > 0, 'no callbacks');
     this.client.remoteUsers.onUpdateBlockText(this.getBlockData(containerId, blockIndex), actions, local);
-    if (this.callbacks.onUpdateBlockText) this.callbacks.onUpdateBlockText(containerId, blockIndex, actions, local);
+    this.callbacks.forEach((cb) => cb.onUpdateBlockText?.(containerId, blockIndex, actions, local));
   }
 
   onDeleteContainer(containerId: string, local: boolean): void {
-    assert(this.callbacks, 'no callbacks');
+    assert(this.callbacks.length > 0, 'no callbacks');
     assert(containerId !== 'root', 'should not delete root container in doc');
-    if (this.callbacks.onDeleteChildContainer) this.callbacks.onDeleteChildContainer(containerId, local);
+    this.callbacks.forEach((cb) => cb.onDeleteChildContainer?.(containerId, local));
   }
 
   onCreateContainer(containerId: string, blocks: DocBlock[], local: boolean): void {
-    assert(this.callbacks, 'no callbacks');
+    assert(this.callbacks.length > 0, 'no callbacks');
     assert(containerId !== 'root', 'should not create root container in doc');
-    if (this.callbacks.onInsertChildContainer) this.callbacks.onInsertChildContainer(containerId, blocks, local);
+    this.callbacks.forEach((cb) => cb.onInsertChildContainer?.(containerId, blocks, local));
   }
 
   destroy(): void {
     this.client.destroy();
-    this.callbacks = null;
+    this.clearCallbacks();
   }
 }

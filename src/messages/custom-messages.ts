@@ -1,4 +1,4 @@
-import { NextEditorUser } from './user';
+import { NextEditorUser } from '@nexteditorjs/nexteditor-core';
 
 export interface NextEditorInitMessage {
   nexteditor: 'init';

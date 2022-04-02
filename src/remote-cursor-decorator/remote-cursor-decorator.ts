@@ -1,4 +1,4 @@
-import { addClass, assert, DocBlockText, DocInsertion, findInsertionById, genId, getTextLength, NextEditor, NextEditorDecorator, removeClass } from '@nexteditorjs/nexteditor-core';
+import { assert, DocBlockText, DocInsertion, findInsertionById, genId, getTextLength, NextEditor, NextEditorDecorator, removeClass } from '@nexteditorjs/nexteditor-core';
 import ShareDBDoc from '../sharedb-doc';
 
 export class RemoteCursorDecorator implements NextEditorDecorator {
@@ -27,6 +27,7 @@ export class RemoteCursorDecorator implements NextEditorDecorator {
           id: genId(),
           type: 'remote-cursor',
           name: message.user.name,
+          time: message.time,
         };
         //
         if (now - message.time < 5 * 1000) {
@@ -47,8 +48,8 @@ export class RemoteCursorDecorator implements NextEditorDecorator {
       activeCursors.forEach((id) => {
         const elem = findInsertionById(editor, id);
         if (elem) {
-          addClass(elem, 'active');
-          elem.setAttribute('data-last-time', `${now}`);
+          // addClass(elem, 'active');
+          // elem.setAttribute('data-last-time', `${now}`);
         }
       });
       //

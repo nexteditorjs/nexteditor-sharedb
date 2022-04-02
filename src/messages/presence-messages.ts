@@ -1,16 +1,10 @@
-import { NextEditorDocRange } from '@nexteditorjs/nexteditor-core';
-import { NextEditorUser } from './user';
+import { NextEditorClientSelection, NextEditorUser } from '@nexteditorjs/nexteditor-core';
 
 export interface NextEditorJoinMessage {
   nexteditor: 'join';
   user: NextEditorUser,
 }
 
-export interface NextEditorClientCursorMessage {
-  nexteditor: 'cursor';
-  user: NextEditorUser,
-  range: NextEditorDocRange;
-  time: number;
-}
+export type NextEditorClientSelectionMessage = NextEditorClientSelection;
 
-export type NextEditorPresenceMessage = NextEditorJoinMessage | NextEditorClientCursorMessage;
+export type NextEditorPresenceMessage = NextEditorJoinMessage | NextEditorClientSelectionMessage;
