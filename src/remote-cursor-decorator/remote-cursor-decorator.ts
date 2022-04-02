@@ -1,4 +1,4 @@
-import { assert, DocBlockText, DocInsertion, genId, getTextLength, NextEditor, NextEditorDecorator } from '@nexteditorjs/nexteditor-core';
+import { addClass, assert, DocBlockText, DocInsertion, findInsertionById, genId, getTextLength, NextEditor, NextEditorDecorator, removeClass } from '@nexteditorjs/nexteditor-core';
 import ShareDBDoc from '../sharedb-doc';
 
 export class RemoteCursorDecorator implements NextEditorDecorator {
@@ -12,18 +12,27 @@ export class RemoteCursorDecorator implements NextEditorDecorator {
     const client = externDoc.client;
     const blockData = editor.doc.getBlockData(containerId, blockIndex);
     const length = getTextLength(blockText);
-    const cursors = client.remoteUsers.getCursors(blockData.id);
-    cursors.forEach((users, offset) => {
+    const cursorMessages = client.remoteUsers.getSimpleCursors(blockData.id);
+    //
+    const activeCursors = new Set<string>();
+    const now = Date.now();
+    //
+    cursorMessages.forEach((messages, offset) => {
       if (offset > length) {
         // eslint-disable-next-line no-param-reassign
         offset = length;
       }
-      const insertionsData = users.map((user) => {
+      const insertionsData = messages.map((message) => {
         const data = {
           id: genId(),
           type: 'remote-cursor',
-          name: user.name,
+          name: message.user.name,
         };
+        //
+        if (now - message.time < 5 * 1000) {
+          activeCursors.add(data.id);
+        }
+        //
         return data;
       });
       const exists = insertions.get(offset);
@@ -32,6 +41,30 @@ export class RemoteCursorDecorator implements NextEditorDecorator {
       } else {
         insertions.set(offset, insertionsData);
       }
+    });
+    //
+    setTimeout(() => {
+      activeCursors.forEach((id) => {
+        const elem = findInsertionById(editor, id);
+        if (elem) {
+          addClass(elem, 'active');
+          elem.setAttribute('data-last-time', `${now}`);
+        }
+      });
+      //
+      setTimeout(() => {
+        const now = Date.now();
+        activeCursors.forEach((id) => {
+          const elem = findInsertionById(editor, id);
+          if (elem) {
+            const lastTime = Number.parseInt(elem.getAttribute('data-last-time') ?? '0', 10) ?? 0;
+            if (now - lastTime > 2900) {
+              removeClass(elem, 'active');
+            }
+          }
+        });
+      }, 3000);
+      //
     });
     //
     return {

@@ -147,6 +147,7 @@ export default class ShareDBDoc implements NextEditorDoc, OpParserHandler {
 
   onUpdateBlockText(containerId: string, blockIndex: number, actions: DocBlockTextActions, local: boolean): void {
     assert(this.callbacks, 'no callbacks');
+    this.client.remoteUsers.onUpdateBlockText(this.getBlockData(containerId, blockIndex), actions, local);
     if (this.callbacks.onUpdateBlockText) this.callbacks.onUpdateBlockText(containerId, blockIndex, actions, local);
   }
 

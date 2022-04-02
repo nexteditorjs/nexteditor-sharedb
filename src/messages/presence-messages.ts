@@ -10,6 +10,7 @@ export interface NextEditorClientCursorMessage {
   nexteditor: 'cursor';
   user: NextEditorUser,
   range: NextEditorDocRange;
+  time: number;
 }
 
 export type NextEditorPresenceMessage = NextEditorJoinMessage | NextEditorClientCursorMessage;

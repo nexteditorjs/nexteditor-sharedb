@@ -18,8 +18,9 @@ export class BroadcastCursor implements NextEditorCallbacks {
       nexteditor: 'cursor',
       user: client.user,
       range,
+      time: Date.now(),
     };
 
     (this.editor.doc.externalDoc as ShareDBDoc).client.broadcastClientMessages(message);
-  }, 300);
+  }, 100);
 }

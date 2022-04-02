@@ -51,6 +51,16 @@ ShareDBDoc.load({
       }
     });
   });
+
+  //
+  doc.client.remoteUsers.on('remote-cursor-change', (blockIds) => {
+    blockIds.forEach((blockId) => {
+      const block = editor.findBlockById(blockId);
+      if (block) {
+        editor.reloadBlock(block);
+      }
+    });
+  });
   //
   //
   (window as any).editor = editor;

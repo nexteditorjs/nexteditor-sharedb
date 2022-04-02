@@ -1,8 +1,25 @@
+html {
+  --primary-color: #FF1A75;
+}
+
 #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;
   color: #2c3e50;
 }
 
+#remote-users {
+  display: flex;
+  margin-bottom: 8px;
+  font-family: Avenir, Helvetica, Arial, sans-serif;
+}
+
+span.remote-user {
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  margin: 4px;
+  padding: 4px 8px;
+}
+
 span.remote-user.self {
-  color: blue;
+  color: var(--primary-color);
 }
