@@ -1,6 +1,6 @@
 {
   "name": "@nexteditorjs/nexteditor-sharedb",
-  "version": "0.0.30",
+  "version": "0.0.31",
   "files": [
     "dist"
   ],
@@ -26,7 +26,7 @@
     "dist": "vite build && node ./build.js && tsc --emitDeclarationOnly --project tsconfig.dist.json"
   },
   "dependencies": {
-    "@nexteditorjs/nexteditor-core": "^0.0.30",
+    "@nexteditorjs/nexteditor-core": "^0.0.31",
     "lodash.isequal": "^4.5.0",
     "lodash.clonedeep": "^4.5.0",
     "lodash.debounce": "^4.0.8",
@@ -36,8 +36,8 @@
     "sharedb": "^2.2.5"
   },
   "devDependencies": {
-    "@nexteditorjs/nexteditor-input-handlers": "^0.0.30",
-    "@nexteditorjs/nexteditor-table-block": "^0.0.30",
+    "@nexteditorjs/nexteditor-input-handlers": "^0.0.31",
+    "@nexteditorjs/nexteditor-table-block": "^0.0.31",
     "@types/lodash.isequal": "^4.5.5",
     "@types/lodash.clonedeep": "^4.5.5",
     "@types/lodash.debounce": "^4.0.6",
