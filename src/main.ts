@@ -1,6 +1,7 @@
 /* eslint-disable import/no-extraneous-dependencies */
 import { addClass, assert, createEditor, createElement, genId, getLogger, RemoteCursorInsertion } from '@nexteditorjs/nexteditor-core';
 import TableBlock from '@nexteditorjs/nexteditor-table-block';
+import ListBlock from '@nexteditorjs/nexteditor-list-block';
 import { MarkdownInputHandler } from '@nexteditorjs/nexteditor-input-handlers';
 import './style.css';
 import ShareDBDoc from './sharedb-doc';
@@ -32,7 +33,7 @@ ShareDBDoc.load({
 }).then((doc) => {
   const editor = createEditor(app, doc, {
     components: {
-      blocks: [TableBlock],
+      blocks: [TableBlock, ListBlock],
       insertions: [RemoteCursorInsertion],
       decorators: [new RemoteCursorDecorator()],
     },
