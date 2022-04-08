@@ -1,22 +1,24 @@
-import { NextEditor, NextEditorCallbacks } from '@nexteditorjs/nexteditor-core';
+import { NextEditor } from '@nexteditorjs/nexteditor-core';
 import debounce from 'lodash.debounce';
 import { NextEditorClientSelectionMessage } from '../messages';
 import ShareDBDoc from '../sharedb-doc';
 
-export class BroadcastCursor implements NextEditorCallbacks {
+export class BroadcastCursor {
   lastUpdateTextTime = 0;
 
   constructor(private editor: NextEditor) {
     editor.doc.registerCallback(this);
+    editor.addListener('selectionChanged', this.handleSelectionChange);
   }
 
   destroy(): void {
     this.editor.doc.unregisterCallback(this);
+    this.editor.removeListener('selectionChanged', this.handleSelectionChange);
   }
 
-  handleSelectionChange(): void {
+  handleSelectionChange = (): void => {
     this.broadcastCursor();
-  }
+  };
 
   onUpdateBlockText(containerId: string, blockIndex: number, actions: unknown, local: boolean): void {
     if (local) {

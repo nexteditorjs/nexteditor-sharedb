@@ -38,8 +38,12 @@ ShareDBDoc.load({
       decorators: [new RemoteCursorDecorator()],
     },
   });
-  editor.registerCallback(new BroadcastCursor(editor));
+  const cursorBroadcaster = new BroadcastCursor(editor);
   editor.input.addHandler(new MarkdownInputHandler());
+  //
+  editor.on('destroy', () => {
+    cursorBroadcaster.destroy();
+  });
   //
   doc.client.remoteUsers.on('change', (users) => {
     const parent = document.getElementById('remote-users');
