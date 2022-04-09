@@ -1,6 +1,8 @@
 /* eslint-disable max-classes-per-file */
 
-import { assert, genId } from '@nexteditorjs/nexteditor-core';
+import { assert, genId, getLogger } from '@nexteditorjs/nexteditor-core';
+
+const logger = getLogger('block-ids');
 
 class BlockIds {
   private ids = new Map<number, string>();
@@ -11,7 +13,7 @@ class BlockIds {
       const index = indexes[i];
       if (index >= blockIndex) {
         const oldId = this.ids.get(index);
-        assert(oldId !== undefined);
+        assert(logger, oldId !== undefined, 'old id is not exists');
         this.ids.delete(index);
         this.ids.set(index + 1, oldId);
       }
@@ -28,7 +30,7 @@ class BlockIds {
       const index = indexes[i];
       if (index > blockIndex) {
         const oldId = this.ids.get(index);
-        assert(oldId !== undefined);
+        assert(logger, oldId !== undefined, 'old id is not exists');
         this.ids.delete(index);
         this.ids.set(index - 1, oldId);
       }
@@ -85,7 +87,7 @@ export class ContainerBlockIds {
         };
       }
     }
-    assert(false, 'fault error: failed to get block index');
+    assert(logger, false, 'fault error: failed to get block index');
     return { containerId: 'error', blockIndex: -1 };
   }
 }

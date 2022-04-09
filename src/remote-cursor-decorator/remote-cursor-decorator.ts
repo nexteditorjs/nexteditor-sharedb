@@ -1,11 +1,13 @@
-import { assert, DocBlockText, DocInsertion, findInsertionById, genId, getTextLength, NextEditor, NextEditorDecorator, removeClass } from '@nexteditorjs/nexteditor-core';
+import { assert, DocBlockText, DocInsertion, genId, getLogger, getTextLength, NextEditor, NextEditorDecorator, removeClass } from '@nexteditorjs/nexteditor-core';
 import ShareDBDoc from '../sharedb-doc';
+
+const logger = getLogger('remote-cursor-decorator');
 
 export class RemoteCursorDecorator implements NextEditorDecorator {
   decorateText(editor: NextEditor, containerId: string, blockIndex: number, blockText: DocBlockText): { insertions?: Map<number, DocInsertion[]>, text?: DocBlockText } {
     //
     const externDoc = editor.doc.externalDoc;
-    assert(externDoc instanceof ShareDBDoc, 'invalid doc type');
+    assert(logger, externDoc instanceof ShareDBDoc, 'invalid doc type');
     //
     const insertions = new Map<number, DocInsertion[]>();
     //

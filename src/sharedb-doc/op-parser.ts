@@ -6,7 +6,7 @@ import { ContainerBlockIds } from './block-ids';
 import OpBlockDataDelta from './op-block-delta';
 // import testJson from './test.json';
 
-const console = getLogger('op-parser');
+const logger = getLogger('op-parser');
 
 export interface OpParserHandler {
   onDeleteBlock: (containerId: string, blockIndex: number, local: boolean) => void;
@@ -30,7 +30,7 @@ class InternalParser {
     this.blockIds.onDeleteBlock(containerId, blockIndex);
     const ignoreObjectData = this.updatingBlockDataDeltaMap.get(blockId);
     if (ignoreObjectData) {
-      console.debug(`ignore update object data before delete block: ${JSON.stringify(ignoreObjectData)}`);
+      logger.debug(`ignore update object data before delete block: ${JSON.stringify(ignoreObjectData)}`);
       this.updatingBlockDataDeltaMap.delete(blockId);
     }
     this.handler.onDeleteBlock(containerId, blockIndex, this.local);
@@ -131,8 +131,8 @@ function parseInsertBlockOnlyOp(containerId: string, orgOps: Op[], parser: Inter
   }
   //
   const blockData: any = firstOp.i;
-  assert(blockData.id);
-  assert(blockData.type);
+  assert(logger, blockData.id, 'block id is required');
+  assert(logger, blockData.type, 'block type is required');
 
   for (let i = 1; i < ops.length; i++) {
     const nextOp = ops[i] as unknown as Array<any>;
@@ -152,7 +152,7 @@ function parseBlockOp(containerId: string, orgOps: Op[], processType: ParseType,
     return;
   }
   //
-  assert(Array.isArray(orgOps), `invalid block op: ${containerId}, ${JSON.stringify(orgOps)}`);
+  assert(logger, Array.isArray(orgOps), `invalid block op: ${containerId}, ${JSON.stringify(orgOps)}`);
   //
   const ops = orgOps.concat();
   const blockIndex = ops[0] as unknown as number;
@@ -166,8 +166,8 @@ function parseBlockOp(containerId: string, orgOps: Op[], processType: ParseType,
     if (data === 'text') {
       // skip text op
       const opData: any = ops[1];
-      assert(typeof opData === 'object');
-      assert(opData.et === 'rich-text');
+      assert(logger, typeof opData === 'object', `invalid block op: ${containerId}, ${JSON.stringify(orgOps)}`);
+      assert(logger, opData.et === 'rich-text', `invalid block op: ${containerId}, ${JSON.stringify(orgOps)}`);
       ops.splice(0, 2);
       //
       if (processType === ParseType.UPSERT) {
@@ -177,18 +177,18 @@ function parseBlockOp(containerId: string, orgOps: Op[], processType: ParseType,
         processor.onUpdateBlockText(containerId, blockIndex, richTextData);
       }
       // no more ops
-      assert(ops.length === 0);
+      assert(logger, ops.length === 0, `invalid block ops.length !== 0, ${JSON.stringify(ops)}`);
     } else if (Array.isArray(data)) { // update block data
       //
-      assert(data.length === 2);
+      assert(logger, data.length === 2, `invalid block op: data.length !== 2, ${JSON.stringify(data)}`);
       const key = data[0] as string;
-      assert(typeof key === 'string');
+      assert(logger, typeof key === 'string', `invalid block op: key ${JSON.stringify(key)}`);
       //
       const opData: any = data[1];
       //
       if (key === 'text') {
         //
-        assert(typeof opData === 'object');
+        assert(logger, typeof opData === 'object', `invalid opData type, ${JSON.stringify(opData)}`);
         //
         if (opData.i) {
           if (processType === ParseType.UPSERT) {
@@ -250,9 +250,9 @@ function parseBlockOp(containerId: string, orgOps: Op[], processType: ParseType,
       //
     } else {
       //
-      assert(typeof data === 'string');
-      assert(data !== 'text');
-      assert(ops.length === 2);
+      assert(logger, typeof data === 'string', 'data is not string');
+      assert(logger, data !== 'text', 'data !== \'text\'');
+      assert(logger, ops.length === 2, `invalid block op: ops.length !== 2, ${JSON.stringify(ops)}`);
       //
       const key = data;
       const opData: any = ops[1];
@@ -283,13 +283,13 @@ function parseBlockOp(containerId: string, orgOps: Op[], processType: ParseType,
     } else if (a instanceof DeleteBlockDataAction) {
       processor.onDeleteBlockData(containerId, blockIndex, a.key);
     } else {
-      assert(false, `invalid action type: ${typeof a}, ${JSON.stringify(a)}`);
+      assert(logger, false, `invalid action type: ${typeof a}, ${JSON.stringify(a)}`);
     }
   });
 }
 
 function parseMetaOp(ops: Op[], parseType: ParseType, parser: InternalParser, handler: OpParserHandler) {
-  console.warn(`unsupported meta op, ${JSON.stringify(ops)}`);
+  logger.warn(`unsupported meta op, ${JSON.stringify(ops)}`);
 }
 
 function parseOp(ops: Op[], parseType: ParseType, parser: InternalParser, handler: OpParserHandler) {
@@ -301,7 +301,7 @@ function parseOp(ops: Op[], parseType: ParseType, parser: InternalParser, handle
     return;
   }
   //
-  assert(rootKey === 'blocks', `invalid op path: ${JSON.stringify(ops)}`);
+  assert(logger, rootKey === 'blocks', `invalid op path: ${JSON.stringify(ops)}`);
   //
   const containerId = ops[1] as unknown as string;
   //
@@ -317,7 +317,7 @@ function parseOp(ops: Op[], parseType: ParseType, parser: InternalParser, handle
     return;
   }
   //
-  assert(typeof containerId === 'string', `invalid container id: ${JSON.stringify(ops)}`);
+  assert(logger, typeof containerId === 'string', `invalid container id: ${JSON.stringify(ops)}`);
   //
   if (Array.isArray(ops[2])) {
     if (parseType === ParseType.REMOVE) {
@@ -346,7 +346,7 @@ function parseOp(ops: Op[], parseType: ParseType, parser: InternalParser, handle
         }
       }
     } else {
-      assert(typeof ops[2] === 'number');
+      assert(logger, typeof ops[2] === 'number', `invalid ops[2], not a number: ${JSON.stringify(ops)}`);
       parseBlockOp(containerId, ops.slice(2), parseType, parser);
     }
   }

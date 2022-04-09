@@ -8,7 +8,7 @@ import { assert, DocBlock, DocBlockDelta, DocObject, genId, getLogger, RemoteUse
 import { ClientError, ErrorType, ShareDBDocOptions, ShareDBError } from './options';
 import { NextEditorCustomMessage, NextEditorInitMessage, NextEditorJoinMessage, NextEditorPresenceMessage, NextEditorUser, NextEditorWelcomeMessage } from '../messages';
 
-const console = getLogger('client');
+const logger = getLogger('client');
 
 const JSON1_TYPE_NAME = 'ot-json1';
 
@@ -61,7 +61,7 @@ export default class ShareDBDocClient {
   }
 
   get user() {
-    assert(this.docUser, 'user have not initialized');
+    assert(logger, this.docUser, 'user have not initialized');
     return this.docUser;
   }
 
@@ -117,7 +117,7 @@ export default class ShareDBDocClient {
         return true;
       }
     } catch (err) {
-      console.error(JSON.stringify(err));
+      logger.error(JSON.stringify(err));
     }
     return false;
   };
@@ -132,14 +132,14 @@ export default class ShareDBDocClient {
 
   handleInitMessage = (message: NextEditorInitMessage) => {
     if (this.localPresence) {
-      console.debug('reconnected');
-      assert(this.docUser, 'user not exists');
-      assert(this.docUser.userId === message.user.userId, 'reconnect, user does not match');
+      logger.debug('reconnected');
+      assert(logger, this.docUser, 'user not exists');
+      assert(logger, this.docUser.userId === message.user.userId, 'reconnect, user does not match');
       this.docUser = message.user;
       return;
     }
     this.docUser = message.user;
-    assert(!this.localPresence, 'local presence has already exists');
+    assert(logger, !this.localPresence, 'local presence has already exists');
     this.localPresence = this.presence.create(this.docUser.clientId);
     this.doc.subscribe(this.handleSubscribe);
     this.doc.on('op', this.events.onOp);
@@ -152,7 +152,7 @@ export default class ShareDBDocClient {
   handlePresenceMessage = (id: string, value: unknown) => {
     const message = value as NextEditorPresenceMessage;
     if (message?.nexteditor === 'join') {
-      console.debug(`${message.user.name} [${message.user.clientId}]join`);
+      logger.debug(`${message.user.name} [${message.user.clientId}]join`);
       this.remoteUsers.addUser(message.user);
     } else if (message?.nexteditor === 'cursor') {
       this.remoteUsers.setCursor(message);
@@ -162,9 +162,9 @@ export default class ShareDBDocClient {
   };
 
   sendJoinMessage = () => {
-    assert(this.localPresence, 'no local presence');
-    assert(this.user, 'fault error, not joined');
-    console.debug(`send join message, ${this.user.name} [${this.user.clientId}]`);
+    assert(logger, this.localPresence, 'no local presence');
+    assert(logger, this.user, 'fault error, not joined');
+    logger.debug(`send join message, ${this.user.name} [${this.user.clientId}]`);
     const joinMessage: NextEditorJoinMessage = {
       nexteditor: 'join',
       user: this.user,
@@ -175,7 +175,7 @@ export default class ShareDBDocClient {
   submitOp = async (ops: any) => new Promise<void>((resolve, reject) => {
     this.doc.submitOp(ops, {}, (err) => {
       if (err) {
-        console.error(`invalid op, ${err.message}, ${JSON.stringify(ops)}`);
+        logger.error(`invalid op, ${err.message}, ${JSON.stringify(ops)}`);
         reject(err);
       } else {
         resolve();
@@ -249,7 +249,7 @@ export default class ShareDBDocClient {
       return Promise.reject(new Error('not connected'));
     }
     return new Promise((resolve, reject) => {
-      assert(this.localPresence);
+      assert(logger, this.localPresence, 'no local presence');
       this.localPresence.submit(data, (err) => {
         if (err) reject(err);
         else resolve();

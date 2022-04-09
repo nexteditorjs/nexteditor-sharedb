@@ -7,10 +7,10 @@ import './style.css';
 import ShareDBDoc from './sharedb-doc';
 import { RemoteCursorDecorator, BroadcastCursor } from './remote-cursor-decorator';
 
-const console = getLogger('main');
+const logger = getLogger('main');
 
 const app = document.querySelector<HTMLDivElement>('#app');
-assert(app, 'app does not exists');
+assert(logger, app, 'app does not exists');
 //
 const query = new URLSearchParams(document.location.search);
 let docId = query.get('doc');
@@ -28,7 +28,7 @@ ShareDBDoc.load({
   token,
   documentId: docId,
   onDocError: (type, error) => {
-    console.error(`type, ${(error as Error).message}`);
+    logger.error(`type, ${(error as Error).message}`);
   },
 }).then((doc) => {
   const editor = createEditor(app, doc, {
@@ -47,7 +47,7 @@ ShareDBDoc.load({
   //
   doc.client.remoteUsers.on('change', (users) => {
     const parent = document.getElementById('remote-users');
-    assert(parent);
+    assert(logger, parent, 'no parent');
     parent.innerHTML = '';
     users.forEach((user) => {
       const span = createElement('span', ['remote-user'], parent, user.name);
@@ -70,5 +70,5 @@ ShareDBDoc.load({
   //
   (window as any).editor = editor;
 }).catch((err) => {
-  console.error(err.message);
+  logger.error(err.message);
 });

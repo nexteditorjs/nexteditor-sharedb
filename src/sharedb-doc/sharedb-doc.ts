@@ -1,11 +1,13 @@
 import {
-  DocBlock, DocBlockText, NextEditorDoc, assert, DocBlockTextActions, DocObject, NextEditorDocCallbacks, DocBlockDelta, createEmptyDoc, EventCallbacks,
+  DocBlock, DocBlockText, NextEditorDoc, assert, DocBlockTextActions, DocObject, NextEditorDocCallbacks, DocBlockDelta, createEmptyDoc, EventCallbacks, getLogger,
 } from '@nexteditorjs/nexteditor-core';
 import cloneDeep from 'lodash.clonedeep';
 import OpBlockDataDelta from './op-block-delta';
 import { OpParserHandler, parseOps } from './op-parser';
 import { ClientError, ErrorType, ShareDBDocOptions } from './options';
 import ShareDBDocClient from './sharedb-client';
+
+const logger = getLogger('sharedb-doc');
 
 export default class ShareDBDoc extends EventCallbacks<NextEditorDocCallbacks> implements NextEditorDoc, OpParserHandler {
   client: ShareDBDocClient;
@@ -78,9 +80,9 @@ export default class ShareDBDoc extends EventCallbacks<NextEditorDocCallbacks> i
 
   getBlockData(containerId: string, blockIndex: number): DocBlock {
     const blocks = this.getContainerBlocks(containerId);
-    assert(blocks, `no container data: ${containerId}`);
+    assert(logger, blocks, `no container data: ${containerId}`);
     const blockData = blocks[blockIndex];
-    assert(blockData, `no block data: ${blockIndex}`);
+    assert(logger, blockData, `no block data: ${blockIndex}`);
     return blockData;
   }
 
@@ -97,10 +99,10 @@ export default class ShareDBDoc extends EventCallbacks<NextEditorDocCallbacks> i
 
   localUpdateBlockText(containerId: string, blockIndex: number, actions: DocBlockTextActions): DocBlockText {
     const oldBlockData = this.getBlockData(containerId, blockIndex);
-    assert(oldBlockData.text, 'no block text');
+    assert(logger, oldBlockData.text, 'no block text');
     this.client.updateRichText(containerId, blockIndex, actions);
     const newText = this.getBlockData(containerId, blockIndex).text;
-    assert(newText, 'no block text');
+    assert(logger, newText, 'no block text');
     return newText;
   }
 
@@ -126,35 +128,35 @@ export default class ShareDBDoc extends EventCallbacks<NextEditorDocCallbacks> i
   };
 
   onDeleteBlock(containerId: string, blockIndex: number, local: boolean): void {
-    assert(this.callbacks.length > 0, 'no callbacks');
+    assert(logger, this.callbacks.length > 0, 'no callbacks');
     this.callbacks.forEach((cb) => cb.onDeleteBlock?.(containerId, blockIndex, local));
   }
 
   onInsertBlock(containerId: string, blockIndex: number, data: DocBlock, local: boolean): void {
-    assert(this.callbacks.length > 0, 'no callbacks');
+    assert(logger, this.callbacks.length > 0, 'no callbacks');
     this.callbacks.forEach((cb) => cb.onInsertBlock?.(containerId, blockIndex, data, local));
   }
 
   onUpdateBlockData(containerId: string, blockIndex: number, delta: OpBlockDataDelta, local: boolean): void {
-    assert(this.callbacks.length > 0, 'no callbacks');
+    assert(logger, this.callbacks.length > 0, 'no callbacks');
     this.callbacks.forEach((cb) => cb.onUpdateBlockData?.(containerId, blockIndex, delta.toDocBlockDelta(), local));
   }
 
   onUpdateBlockText(containerId: string, blockIndex: number, actions: DocBlockTextActions, local: boolean): void {
-    assert(this.callbacks.length > 0, 'no callbacks');
+    assert(logger, this.callbacks.length > 0, 'no callbacks');
     this.client.remoteUsers.onUpdateBlockText(this.getBlockData(containerId, blockIndex), actions, local);
     this.callbacks.forEach((cb) => cb.onUpdateBlockText?.(containerId, blockIndex, actions, local));
   }
 
   onDeleteContainer(containerId: string, local: boolean): void {
-    assert(this.callbacks.length > 0, 'no callbacks');
-    assert(containerId !== 'root', 'should not delete root container in doc');
+    assert(logger, this.callbacks.length > 0, 'no callbacks');
+    assert(logger, containerId !== 'root', 'should not delete root container in doc');
     this.callbacks.forEach((cb) => cb.onDeleteChildContainer?.(containerId, local));
   }
 
   onCreateContainer(containerId: string, blocks: DocBlock[], local: boolean): void {
-    assert(this.callbacks.length > 0, 'no callbacks');
-    assert(containerId !== 'root', 'should not create root container in doc');
+    assert(logger, this.callbacks.length > 0, 'no callbacks');
+    assert(logger, containerId !== 'root', 'should not create root container in doc');
     this.callbacks.forEach((cb) => cb.onInsertChildContainer?.(containerId, blocks, local));
   }
 
