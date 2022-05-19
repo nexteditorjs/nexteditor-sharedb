@@ -10,6 +10,9 @@ module.exports = defineConfig({
       '/sharedb-demo': {
         target: 'ws://localhost:8080',
         ws: true,
+      },
+      '^/fake/.*': {
+        target: 'http://localhost:8080',
       }
     }
   },

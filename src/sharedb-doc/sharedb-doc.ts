@@ -51,8 +51,12 @@ export default class ShareDBDoc extends EventCallbacks<NextEditorDocCallbacks> i
           }
         }
         resolve(doc);
-      }, (err) => {
-        reject(err);
+      }, (type, err) => {
+        logger.error(`failed to load document, type: ${type}, error: ${err.message}`);
+        const error = new Error(err.message);
+        error.code = type;
+        (error as any).orgin = err;
+        reject(error);
       });
     });
   }
